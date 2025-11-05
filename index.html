@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Owl Browser</title>
+<link
+  id="favicon"
+  rel="icon"
+  href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>"
+/>
+<style>
+:root {
+  --main-bg-color: #000;
+  --glow-color-light:#00d4ff;
+  --glow-color-dark:#007bff;
+  --tab-color:#11121c;
+  --searchbar-color:rgba(255,255,255,0.08);
+}
+
+body {
+  margin:0;
+  height:100vh;
+  overflow:hidden;
+  background-color:var(--main-bg-color);
+  font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color:#e0e0e0;
+  display:flex;
+  flex-direction:column;
+}
+
+/* --- Animated Background with Neon Particle Trails --- */
+#animatedBackground {
+  position:fixed;
+  top:0; left:0; width:100%; height:100%;
+  background:radial-gradient(circle at center, #000 0%, #05050c 100%);
+  overflow:hidden;
+  z-index:-5;
+}
+.particle {
+  position:absolute;
+  border-radius:50%;
+  animation: floatParticle 12s linear infinite;
+}
+.particle::after {
+  content:"";
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
+  background:inherit;
+  filter:blur(8px);
+  opacity:0.8;
+}
+@keyframes floatParticle {
+  0% { transform:translateY(100vh) scale(0.3); opacity:0; }
+  50% { opacity:1; }
+  100% { transform:translateY(-10vh) scale(1.2); opacity:0; }
+}
+
+/* Tabs */
+#tabBar {
+  display:flex; align-items:center;
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,0.15);
+  margin:0 20px 5px 20px;
+  border-radius:10px;
+  overflow-x:auto;
+  white-space:nowrap;
+  z-index:50;
+}
+.tab {
+  display:flex; align-items:center;
+  background:var(--tab-color);
+  color:#e0e0e0; padding:8px 14px;
+  border-radius:10px; margin:6px;
+  cursor:pointer; font-size:14px;
+  transition:all 0.3s ease;
+}
+.tab.active { background: linear-gradient(90deg, var(--glow-color-dark), var(--glow-color-light)); color:#fff; }
+.close-tab { margin-left:8px; font-weight:bold; cursor:pointer; color:#ccc; }
+
+/* Centered Fancy Search Bar with OWL Browser title */
+#centerSearchWrapper {
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  width:90%;
+  max-width:650px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  z-index:10;
+}
+#centerSearchWrapper h1 {
+  color:#00d4ff;
+  text-shadow: 0 0 15px #00d4ff, 0 0 30px #007bff, 0 0 45px #00d4ff;
+  font-size:48px;
+  margin-bottom:20px;
+  animation: glowPulse 2s infinite alternate;
+}
+@keyframes glowPulse {
+  0% { text-shadow:0 0 15px #00d4ff,0 0 30px #007bff,0 0 45px #00d4ff; }
+  100% { text-shadow:0 0 25px #00d4ff,0 0 50px #007bff,0 0 75px #00d4ff; }
+}
+#centerSearch {
+  display:flex;
+  justify-content:center;
+  width:100%;
+}
+#centerSearch form {
+  display:flex; width:100%; gap:15px;
+  backdrop-filter:blur(18px);
+  background: linear-gradient(145deg, rgba(0,212,255,0.05), rgba(0,0,0,0.3));
+  border-radius:60px;
+  padding:12px;
+  box-shadow:0 0 50px rgba(0,212,255,0.3), inset 0 0 20px rgba(0,212,255,0.2);
+  transition:0.5s all;
+}
+#centerSearch form:hover {
+  box-shadow:0 0 60px rgba(0,212,255,0.5), inset 0 0 25px rgba(0,212,255,0.3);
+}
+#centerSearch input[type="text"] {
+  flex-grow:1;
+  padding:18px 30px;
+  border:none;
+  outline:none;
+  border-radius:50px;
+  font-size:18px;
+  background:rgba(255,255,255,0.05);
+  color:#e0e0e0;
+  box-shadow: inset 0 0 15px rgba(0,212,255,0.2);
+  transition:0.4s all;
+}
+#centerSearch input[type="text"]:focus {
+  background:rgba(255,255,255,0.12);
+  box-shadow:0 0 25px var(--glow-color-light), inset 0 0 20px rgba(0,212,255,0.4);
+}
+#centerSearch button {
+  padding:16px 34px;
+  border:none;
+  background:linear-gradient(135deg, var(--glow-color-dark), var(--glow-color-light));
+  color:white;
+  border-radius:50px;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:16px;
+  box-shadow:0 0 25px rgba(0,212,255,0.5);
+  transition:0.3s all;
+}
+#centerSearch button:hover {
+  transform:scale(1.08);
+  box-shadow:0 0 40px rgba(0,212,255,0.7), 0 0 20px rgba(0,212,255,0.5) inset;
+}
+
+/* Iframe */
+#iframeContainer { flex-grow:1; position:relative; height:100%; overflow:hidden; }
+#iframeContainer iframe { width:100%; height:100%; border:none; display:none; position:absolute; top:0; left:0; }
+#iframeContainer iframe.active { display:block; }
+
+/* Top Settings */
+#topSettingsIcon {
+  position:fixed;
+  top:15px;
+  right:20px;
+  width:35px;
+  height:35px;
+  cursor:pointer;
+  fill:#00d4ff;
+  z-index:2000;
+  transition:0.3s;
+}
+#topSettingsIcon:hover { transform:rotate(45deg); }
+
+#customSettingsModal {
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:#11121c;
+  padding:25px;
+  border-radius:15px;
+  color:#e0e0e0;
+  z-index:3000;
+  display:none;
+  box-shadow:0 0 30px rgba(0,0,0,0.7);
+}
+#customSettingsModal.visible { display:block; }
+.instaNote { margin-top:15px; color:#00d4ff; font-weight:bold; }
+
+/* Enhanced Games Section */
+#gamesSection {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: radial-gradient(circle at center, #000 0%, #05050c 100%);
+  color: #00d4ff;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 4000;
+  text-align: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+#gamesSection h2 {
+  font-size: 48px;
+  margin-bottom: 40px;
+  text-shadow: 0 0 20px #00d4ff, 0 0 40px #007bff;
+  animation: glowPulse 2s infinite alternate;
+}
+#gamesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+  width: 100%;
+  max-width: 900px;
+}
+#gamesGrid a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(0,212,255,0.05), rgba(0,0,0,0.3));
+  padding: 25px;
+  border-radius: 15px;
+  font-size: 18px;
+  color: #fff;
+  text-decoration: none;
+  transition: all 0.4s ease;
+  border: 1px solid rgba(0,212,255,0.2);
+  box-shadow: 0 0 15px rgba(0,212,255,0.15), inset 0 0 10px rgba(0,212,255,0.1);
+}
+#gamesGrid a img {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 0 10px rgba(0,212,255,0.3);
+  transition: transform 0.3s ease;
+}
+#gamesGrid a:hover img {
+  transform: scale(1.15);
+}
+#gamesGrid a:hover {
+  color: #00d4ff;
+  background: rgba(0,212,255,0.08);
+  transform: scale(1.08);
+  box-shadow: 0 0 30px rgba(0,212,255,0.4), inset 0 0 15px rgba(0,212,255,0.3);
+}
+#closeGames {
+  margin-top: 50px;
+  background: linear-gradient(135deg, var(--glow-color-dark), var(--glow-color-light));
+  border: none;
+  color: white;
+  padding: 12px 35px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 0 0 25px rgba(0,212,255,0.5);
+  transition: all 0.3s ease;
+}
+#closeGames:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 40px rgba(0,212,255,0.7), 0 0 20px rgba(0,212,255,0.5) inset;
+}
+
+/* Welcome Animation */
+#welcomeOverlay {
+  position:fixed;
+  top:0; left:0; width:100%; height:100%;
+  background:#000;
+  display:flex; justify-content:center; align-items:center;
+  flex-direction:column;
+  z-index:5000;
+  color:#00d4ff;
+  font-size:48px;
+  text-align:center;
+  animation: fadeOut 1s ease forwards;
+  animation-delay:3s;
+}
+#welcomeOverlay span {
+  display:block;
+  font-size:64px;
+  margin-bottom:20px;
+  opacity:0;
+  animation: neonPulse 0.6s ease forwards;
+}
+#welcomeOverlay span:nth-child(1){animation-delay:0.2s;}
+#welcomeOverlay span:nth-child(2){animation-delay:1s;}
+@keyframes neonPulse {
+  0% { opacity:0; text-shadow:0 0 10px #00d4ff, 0 0 20px #007bff; }
+  50% { opacity:1; text-shadow:0 0 20px #00d4ff,0 0 40px #007bff,0 0 60px #00d4ff; }
+  100% { opacity:1; text-shadow:0 0 25px #00d4ff,0 0 50px #007bff,0 0 75px #00d4ff; }
+}
+@keyframes fadeOut { 0% {opacity:1;} 100% {opacity:0; display:none;} }
+</style>
+</head>
+<body>
+
+<div id="animatedBackground"></div>
+
+<div id="tabBar">
+  <div class="tab active" data-id="0">🌐 New Tab<span class="close-tab">×</span></div>
+  <button id="newTabBtn">+</button>
+</div>
+
+<!-- Centered Fancy Search + Title -->
+<div id="centerSearchWrapper">
+  <h1>OWL Browser</h1>
+  <div id="centerSearch">
+    <form id="searchForm">
+      <input id="searchInput" type="text" placeholder="Search or enter URL" />
+      <button type="submit">Go</button>
+    </form>
+  </div>
+</div>
+
+<div id="iframeContainer">
+  <iframe class="active" data-id="0"></iframe>
+</div>
+
+<!-- Top Settings Icon -->
+<svg id="topSettingsIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0-6a2 2 0 0 1 2 2v1.09c.73.25 1.42.57 2.07.95l.77-.77a2 2 0 0 1 2.83 2.83l-.77.77c.38.65.7 1.34.95 2.07H22a2 2 0 0 1 0 4h-1.09a7.93 7.93 0 0 1-.95 2.07l.77.77a2 2 0 1 1-2.83 2.83l-.77-.77a7.93 7.93 0 0 1-2.07.95V22a 2 2 0 0 1-4 0v-1.09a7.93 7.93 0 0 1-2.07-.95l-.77.77a2 2 0 0 1-2.83-2.83l.77-.77a7.93 7.93 0 0 1-.95-2.07H2a2 2 0 0 1 0-4h1.09a7.93 7.93 0 0 1 .95-2.07l-.77-.77a2 2 0 1 1 2.83-2.83l.77.77A7.93 7.93 0 0 1 9.91 5.09V4a2 2 0 0 1 2-2Z"/>
+</svg>
+
+<!-- Custom Settings Modal -->
+<div id="customSettingsModal">
+  <h2>Appearance Settings</h2>
+  <label>Tab Color:</label>
+  <input type="color" id="tabColorPicker" value="#11121c"><br>
+  <label>Search Bar Color:</label>
+  <input type="color" id="searchColorPicker" value="rgba(255,255,255,0.08)">
+  <div class="instaNote">Changes are instant!</div>
+  <hr style="margin:15px 0; border-color:#333;">
+  <button id="openGamesBtn" style="margin-top:10px; background:linear-gradient(135deg, var(--glow-color-dark), var(--glow-color-light)); border:none; color:white; padding:10px 20px; border-radius:30px; cursor:pointer; font-weight:bold;">🎮 Open Games Section</button>
+</div>
+
+<!-- Games Section -->
+<div id="gamesSection">
+  <h2>🎮 OWL Browser Games</h2>
+  <div id="gamesGrid">
+    <a href="https://www.crazygames.com" target="_blank"><img src="https://www.crazygames.com/favicon.ico" alt="Crazy Games">Crazy Games</a>
+    <a href="https://poki.com" target="_blank"><img src="https://poki.com/favicon.ico" alt="Poki">Poki</a>
+    <a href="https://www.coolmathgames.com/" target="_blank"><img src="https://www.coolmathgames.com/sites/default/files/favicon.ico" alt="Cool Math Games">Cool Math Games</a>
+    <a href="https://www.miniclip.com/games/en/" target="_blank"><img src="https://www.miniclip.com/favicon.ico" alt="Miniclip">Miniclip</a>
+    <a href="https://y8.com" target="_blank"><img src="https://img.y8.com/favicon.ico" alt="Y8">Y8 Games</a>
+  </div>
+  <button id="closeGames">⬅ Back to Browser</button>
+</div>
+
+<!-- Welcome Overlay -->
+<div id="welcomeOverlay"><span>🦉</span><span>Welcome to OWL Browser</span></div>
+
+<script>
+const tabBar = document.getElementById("tabBar");
+const iframeContainer = document.getElementById("iframeContainer");
+const centerSearchWrapper = document.getElementById("centerSearchWrapper");
+const searchForm = document.getElementById("searchForm");
+const searchInput = document.getElementById("searchInput");
+const newTabBtn = document.getElementById("newTabBtn");
+const topSettingsIcon = document.getElementById("topSettingsIcon");
+const customSettingsModal = document.getElementById("customSettingsModal");
+const openGamesBtn = document.getElementById("openGamesBtn");
+const gamesSection = document.getElementById("gamesSection");
+const closeGames = document.getElementById("closeGames");
+const welcomeOverlay = document.getElementById("welcomeOverlay");
+
+let tabs = [{ id: 0, title: "🌐 New Tab", url: "" }];
+let tabCount = 1;
+
+function switchTab(id) {
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelector(`.tab[data-id='${id}']`).classList.add("active");
+  document.querySelectorAll("iframe").forEach(f=>f.classList.remove("active"));
+  document.querySelector(`iframe[data-id='${id}']`).classList.add("active");
+  const tab = tabs.find(t=>t.id===id);
+  centerSearchWrapper.style.display = tab.url ? "none" : "flex";
+}
+
+newTabBtn.onclick = () => {
+  const id = tabCount++;
+  tabs.push({ id, title: "🌐 New Tab", url: "" });
+  const tabEl = document.createElement("div");
+  tabEl.className = "tab";
+  tabEl.dataset.id = id;
+  tabEl.innerHTML = "🌐 New Tab<span class='close-tab'>×</span>";
+  tabBar.insertBefore(tabEl, newTabBtn);
+  const iframe = document.createElement("iframe");
+  iframe.dataset.id = id;
+  iframeContainer.appendChild(iframe);
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll("iframe").forEach(f=>f.classList.remove("active"));
+  tabEl.classList.add("active");
+  iframe.classList.add("active");
+  centerSearchWrapper.style.display="flex";
+  searchInput.value="";
+};
+
+tabBar.addEventListener("click", e=>{
+  if(e.target.classList.contains("close-tab")){
+    const id = parseInt(e.target.parentElement.dataset.id);
+    tabs = tabs.filter(t=>t.id!==id);
+    document.querySelector(`iframe[data-id='${id}']`).remove();
+    e.target.parentElement.remove();
+    if(!tabs.length) newTabBtn.click();
+    else switchTab(tabs[tabs.length-1].id);
+  } else if(e.target.classList.contains("tab")){
+    switchTab(parseInt(e.target.dataset.id));
+  }
+});
+
+searchForm.onsubmit=e=>{
+  e.preventDefault();
+  let query=searchInput.value.trim();
+  if(!query) return;
+  let url;
+  if(/^https?:\/\//i.test(query) || query.includes("."))
+    url = /^https?:\/\//i.test(query) ? query : "https://"+query;
+  else url = "https://www.bing.com/search?q="+encodeURIComponent(query);
+  const activeId = tabs.find(t=>document.querySelector(`iframe[data-id='${t.id}']`).classList.contains("active")).id;
+  tabs.find(t=>t.id===activeId).url = url;
+  document.querySelector(`iframe[data-id='${activeId}']`).src = url;
+  centerSearchWrapper.style.display="none";
+};
+
+topSettingsIcon.onclick=()=>customSettingsModal.classList.toggle("visible");
+document.getElementById("tabColorPicker").oninput=e=>{
+  document.querySelectorAll(".tab").forEach(t=>t.style.backgroundColor=e.target.value);
+};
+document.getElementById("searchColorPicker").oninput=e=>{
+  document.querySelector("#centerSearch form").style.backgroundColor=e.target.value;
+};
+
+openGamesBtn.onclick=()=>{
+  customSettingsModal.classList.remove("visible");
+  gamesSection.style.display="flex";
+};
+closeGames.onclick=()=>{
+  gamesSection.style.display="none";
+};
+
+setTimeout(()=>{ welcomeOverlay.style.display="none"; },3500);
+</script>
+</body>
+</html>
+
+
